@@ -13,9 +13,7 @@ public class HBaseClientCURD {
     public static Connection getConn() throws IOException {
 
         Configuration conf = HBaseConfiguration.create(); // 会自动加载hbase-site.xml
-//        conf.set("hbase.zookeeper.quorum","localhost:2181"); //如不告知则无法连接
-        conf.set("hbase.zookeeper.quorum","emr-worker-2,emr-worker-1,emr-header-1"); //如不告知则无法连接
-        conf.set("hbase.zookeeper.property.clientPort","2181"); //如不告知则无法连接
+        conf.set("hbase.zookeeper.quorum","localhost:2181"); //如不告知则无法连接
         return ConnectionFactory.createConnection(conf);
 
     }
