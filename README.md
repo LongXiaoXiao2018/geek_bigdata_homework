@@ -73,6 +73,122 @@
 
 作业2、使用 Java API 操作 HBase 建表，实现插入数据，删除数据，查询等功能。
 
-1>、核心代码
+1>、核心代码（在hbase-demo项目的src/main/java/hbase/demo包下的 HBaseClientCURD.java中）
 
 ·先创建命名空间 create_namespace 'quchenlong'
+
+·然后依次进行了建表、插入、删除、查询等操作
+
+    public static void main(String[] args) throws Exception {
+
+        String tableName = "quchenlong:student";
+
+        List<String> columnFamilies = new ArrayList<>();
+        columnFamilies.add("info");
+        columnFamilies.add("score");
+
+        // 创建表
+        testCreateTable(tableName,columnFamilies);
+
+        String OP_ROW_KEY = "quchenlong";
+
+        String OP_DELETE_TEST = "delete_test";
+
+        // 插入
+        Map<String,List<Long>> dataMap = new HashMap<>();
+        dataMap.put("Tom", Arrays.asList(20210000000001L, 1L, 75L, 82L));
+        dataMap.put("Jerry", Arrays.asList(20210000000002L, 1L, 85L, 67L));
+        dataMap.put("Jack", Arrays.asList(20210000000003L, 2L, 80L, 80L));
+        dataMap.put("Rose", Arrays.asList(20210000000004L, 2L, 60L, 61L));
+        dataMap.put(OP_ROW_KEY, Arrays.asList(20220735030018L, 3L, 66L, 77L));
+        dataMap.put(OP_DELETE_TEST, Arrays.asList(0L, 3L, 66L, 77L));
+
+        dataMap.forEach((k,v)->{
+            try {
+                testPut(tableName,k,"info","student_id",v.get(0).toString());
+                testPut(tableName,k,"info","class",v.get(1).toString());
+                testPut(tableName,k,"score","understanding",v.get(2).toString());
+                testPut(tableName,k,"score","programming",v.get(3).toString());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
+        // 查询
+        testGet(tableName,OP_ROW_KEY,"info","student_id");
+
+        // 删除
+        testDelete(tableName,OP_DELETE_TEST);
+
+        // 查询
+        testGet(tableName,OP_ROW_KEY,"info","student_id");
+
+    }
+    
+
+2>、结果展示（此处仅以查询方法的输出结果进行展示）
+
+·查询的的代码
+
+    public static void testGet(String tableName,String rowKey,String colFamily,String colKey) throws Exception{
+
+        Table table = getConn().getTable(TableName.valueOf(tableName));
+
+        Get get = new Get(rowKey.getBytes());
+
+        Result result = table.get(get);
+
+        //从用户结果中指定某个key的value  取一个值
+        result.getValue(colFamily.getBytes(),colKey.getBytes());
+
+        // 遍历所有值
+        CellScanner cellScanner = result.cellScanner();
+        while(cellScanner.advance()){
+            Cell cell = cellScanner.current();
+
+            byte[] rowArray = cell.getRowArray();// current kv
+            byte[] familyArray = cell.getFamilyArray();  // 列族名
+            byte[] qualiferArray = cell.getQualifierArray(); //列名
+            byte[] valueArray = cell.getValueArray(); // value名
+
+            System.out.println("KV: " + new String(rowArray,cell.getRowOffset(),cell.getRowLength()));
+            System.out.println("Family Name: " + new String(familyArray,cell.getFamilyOffset(),cell.getFamilyLength()));
+            System.out.println("Column Name: " + new String(qualiferArray,cell.getQualifierOffset(),cell.getQualifierLength()));
+            System.out.println("Value : " + new String(valueArray,cell.getValueOffset(),cell.getValueLength()));
+
+        }
+
+    }
+·输出的结果
+
+KV: quchenlong
+
+Family Name: info
+
+Column Name: class
+
+Value : 3
+
+KV: quchenlong
+
+Family Name: info
+
+Column Name: student_id
+
+Value : 20220735030018
+
+KV: quchenlong
+
+Family Name: score
+
+Column Name: programming
+
+Value : 77
+
+KV: quchenlong
+
+Family Name: score
+
+Column Name: understanding
+
+Value : 66
