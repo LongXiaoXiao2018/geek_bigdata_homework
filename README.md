@@ -1,5 +1,111 @@
 # geek_bigdata_homework（持续更新中）
 
+## Week4 环境
+
+·基于EMR大数据平台（本次作业主要使用了EMR大数据平台上的HUE）
+
+## Week4 作业 核心代码及结果展示
+
+开发前的准备工作：
+
+1>、hive、hdfs 租户隔离 在hdfs的/user目录下创建自己的工作目录（user/qu_chenlong）、在hive创建自己的database（qu_chenlong）
+
+2>、将data/hive下的文件通过hadoop fs -cp的方式复制一份到自己的工作目录下
+
+3>、在hive中，使用use qu_chenlong，到自己创建的hive数环境中创建t_movie、t_rating、t_user表，建表语句如下：
+
+    -- 建t_movie表
+    CREATE external TABLE `qu_chenlong.t_movie`(
+    `movie_id` bigint COMMENT '电影id', 
+    `movie_name` string COMMENT '电影名字', 
+    `movie_type` string COMMENT '电影类型')
+    ROW FORMAT SERDE 
+    'org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe' 
+    WITH SERDEPROPERTIES ( 
+    'field.delim'='::')
+    LOCATION
+    '/user/qu_chenlong/week4/movies';
+    
+    -- 建t_rating表
+    CREATE external TABLE `qu_chenlong.t_rating`(
+    `user_id` int COMMENT '用户id', 
+    `movie_id` bigint COMMENT '电影id', 
+    `rate` int COMMENT '评分', 
+    `times` string COMMENT '评分时间')
+    ROW FORMAT SERDE 
+    'org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe' 
+    WITH SERDEPROPERTIES ( 
+    'field.delim'='::') 
+    LOCATION 
+    '/user/qu_chenlong/week4/ratings';
+    
+    -- 建t_user表
+    CREATE external TABLE `qu_chenlong.t_user`(
+    `user_id` int COMMENT '用户id', 
+    `sex` string COMMENT '性别', 
+    `age` int COMMENT '年龄', 
+    `occupation` string COMMENT '职业', 
+    `zip_code` bigint COMMENT '邮编')
+    ROW FORMAT SERDE 
+    'org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe' 
+    WITH SERDEPROPERTIES ( 
+    'field.delim'='::') 
+    LOCATION
+    '/user/qu_chenlong/week4/users';
+
+作业1、展示电影 ID 为 2116 这部电影各年龄段的平均影评分。
+
+    CREATE TABLE answer1
+    AS
+    SELECT c.age AS age, avg(b.rate) AS avgrate
+    FROM t_movie a
+	    JOIN t_rating b ON a.movie_id = b.movie_id
+	    JOIN t_user c ON c.user_id = b.user_id
+    WHERE a.movie_id = 2116
+    GROUP BY c.age
+    ORDER BY c.age;
+
+作业2、找出男性评分最高且评分次数超过 50 次的 10 部电影，展示电影名，平均影评分和评分次数。
+
+    CREATE TABLE answer2
+    AS
+    SELECT 'M' AS sex, c.movie_name AS name, avg(a.rate) AS avgrate
+	    , count(c.movie_name) AS total
+    FROM t_rating a
+	    JOIN t_user b ON a.user_id = b.user_id
+	    JOIN t_movie c ON a.movie_id = c.movie_id
+    WHERE b.sex = 'M'
+    GROUP BY c.movie_name
+    HAVING total > 50
+    ORDER BY avgrate DESC
+    LIMIT 10;
+
+作业3、找出影评次数最多的女士所给出最高分的 10 部电影的平均影评分，展示电影名和平均影评分（可使用多行 SQL）。
+
+    CREATE TABLE answer3
+    AS
+    SELECT c.movie_name AS moviename, avg(b.rate) AS avgrate
+    FROM (
+	    SELECT movie_id
+	    FROM t_rating
+	    WHERE user_id = (
+		    SELECT a.user_id
+		    FROM t_user a
+			    JOIN t_rating b ON a.user_id = b.user_id
+		    WHERE a.sex = 'F'
+		    GROUP BY a.user_id
+		    ORDER BY COUNT(1) DESC
+		    LIMIT 1
+	    )
+	    ORDER BY rate DESC
+	    LIMIT 10
+    ) a
+	    JOIN t_rating b ON a.movie_id = b.movie_id
+	    JOIN t_movie c ON b.movie_id = c.movie_id
+    GROUP BY b.movie_id, c.movie_name;
+
+## Week2 环境
+
 ·目前仅在本机搭建伪分布式进行了本地开发
 
 ·本机的hadoop版本为2.7.2、hbase版本为2.1.6
