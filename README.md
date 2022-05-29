@@ -2,7 +2,7 @@
 
 ## Week4 环境
 
-·基于EMR大数据平台（本次作业主要使用了EMR大数据平台上的HUE）
+·基于EMR大数据平台（本次作业主要使用了EMR大数据平台上的HUE、HIVE和HDFS）
 
 ## Week4 作业 核心代码及结果展示
 
@@ -103,6 +103,8 @@
 	    JOIN t_rating b ON a.movie_id = b.movie_id
 	    JOIN t_movie c ON b.movie_id = c.movie_id
     GROUP BY b.movie_id, c.movie_name;
+
+具体执行结果可进入服务器的hive，use qu_chenlong，通过 select * from answer1、select * from answer2、select * from answer3 进行查看
 
 ## Week2 环境
 
