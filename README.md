@@ -1,5 +1,94 @@
 # geek_bigdata_homework（持续更新中）
 
+## Week6 环境
+
+·基于本地IDEA进行开发与测试
+
+## Week6 作业 核心代码及结果展示
+
+作业一：使用 RDD API 实现带词频的倒排索引
+
+核心代码：
+
+    object invertedIndexTask {
+        def main(args: Array[String]): Unit = {
+        
+            val input = this.getClass.getResource("/") + "data"
+        
+            val sparkConf = new SparkConf().setAppName(this.getClass.getSimpleName).setMaster("local")
+            val sc = new SparkContext(sparkConf)
+            sc.setLogLevel("WARN")
+            //1.获取hadoop操作文件的api
+            val fs = FileSystem.get(sc.hadoopConfiguration)
+            //2.读取目录下的文件，并生成列表
+            val filelist = fs.listFiles(new Path(input), true)
+            //3.遍历文件，并读取文件类容成成rdd，结构为（文件名，单词）
+            var unionrdd = sc.emptyRDD[(String,String)] // rdd声明变量为 var
+            while (filelist.hasNext){
+              val abs_path = new Path(filelist.next().getPath.toString)
+              val file_name = abs_path.getName //文件名称
+              val rdd1 = sc.textFile(abs_path.toString).flatMap(_.split(" ").map((file_name,_)))
+              //4.将遍历的多个rdd拼接成1个Rdd
+              unionrdd = unionrdd.union(rdd1)
+            }
+            //5.构建词频（（文件名，单词），词频）
+            val rdd2 = unionrdd.map(word => {(word, 1)}).reduceByKey(_ + _)
+            //6.//调整输出格式,将（文件名，单词），词频）==》 （单词，（文件名，词频）） ==》 （单词，（文件名，词频））汇总
+            val frdd1 = rdd2.map(word =>{(word._1._2,String.format("(%s,%s)",word._1._1,word._2.toString))})
+            val frdd2 = frdd1.reduceByKey(_ +"," + _)
+            val frdd3 = frdd2.map(word =>String.format("\"%s\",{%s}",word._1,word._2))
+            frdd3.foreach(println)
+        }
+    }
+
+执行结果：
+
+<img width="1440" alt="截屏2022-06-12 下午10 09 17" src="https://user-images.githubusercontent.com/19924975/173239662-6b218d8d-ccc7-4c22-abc3-376156412071.png">
+
+作业二：Distcp 的 Spark 实现
+使用 Spark 实现 Hadoop 分布式数据传输工具 DistCp (distributed copy)，只要求实现最基础的 copy 功能，对于 -update、-diff、-p 不做要求。
+
+核心代码：
+
+    object sparkDistCp {
+        def main(args: Array[String]): Unit = {
+        
+            val sparkConf = new SparkConf().setAppName(this.getClass.getSimpleName).setMaster("local")
+            val sc = new SparkContext(sparkConf)
+        
+            val conf = new Configuration();
+            conf.set("fs.defaultFS", "hdfs://localhost:9000")
+        
+            val srcPath = args(0)
+            val targetPath = args(1)
+        
+            var fsShell: FsShell = null
+        
+            try {
+              fsShell = new FsShell(conf)
+              fsShell.run(Array("-rm", "-r", targetPath))
+              fsShell.run(Array("-mkdir", "-p", targetPath))
+              val code = fsShell.run(Array("-cp", srcPath + "/*", targetPath + "/"))
+              println(s"Copy $srcPath to $targetPath ${if (code == 0) "success" else "failed"}.")
+            } catch {
+              case e: Exception =>
+                println(s"Copy $srcPath to $targetPath failed")
+                e.printStackTrace()
+            } finally {
+              if (null != fsShell) {
+                fsShell.close()
+              }
+            }
+        
+        }
+    }
+
+执行结果：
+
+<img width="1440" alt="截屏2022-06-12 下午11 14 27" src="https://user-images.githubusercontent.com/19924975/173239934-e69d1adc-f160-4f80-b4e8-165d3f62c4a9.png">
+
+<img width="1440" alt="截屏2022-06-12 下午11 15 50" src="https://user-images.githubusercontent.com/19924975/173239952-9930d39b-16b1-4175-9b87-7fa2c419e2ca.png">
+
 ## Week4 环境
 
 ·基于EMR大数据平台（本次作业主要使用了EMR大数据平台上的HUE、HIVE和HDFS）
